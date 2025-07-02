@@ -1,23 +1,77 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
 
-type Animal interface {
-	Sound() string
+type Measurement struct {
+	Min   float64
+	Max   float64
+	Sum   float64
+	Count int64
 }
 
-type Dog struct {
-}
+func main() {
+	start := time.Now()
+	measurements, err := os.Open("weather_stations.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer measurements.Close()
 
-func (Dog) Sound() string {
-	return "Au! au!"
-}
+	dados := make(map[string]Measurement)
 
-func whatDoesThisAnimalSay(a Animal) {
-	fmt.Println(a.Sound())
-}
+	scanner := bufio.NewScanner(measurements)
 
-func main(){
-	dog := Dog{}
-	whatDoesThisAnimalSay(dog)
+	for scanner.Scan() {
+		rawData := scanner.Text()
+		semicolon := strings.Index(rawData, ";")
+		location := rawData[:semicolon]
+		rawTemp := rawData[semicolon+1:]
+
+		temp, _ := strconv.ParseFloat(rawTemp, 64)
+
+		measurement, ok := dados[location]
+		if !ok {
+			measurement = Measurement{
+				Min: temp,
+				Max: temp,
+				Sum: temp,
+				Count: 1,
+			}
+		} else {
+			measurement.Min = min(measurement.Min, temp)
+			measurement.Max = min(measurement.Max, temp)
+			measurement.Sum += temp
+			measurement.Count++
+		}
+		dados[location] = measurement
+	}
+	
+	locations := make([]string, 0, len(dados))
+	for name:= range dados{
+		locations = append(locations, name)
+	}
+
+	sort.Strings(locations)
+	
+	
+	for _, name := range locations {
+		measurement := dados[name]
+		fmt.Printf(
+			"%s=%.1f/%.1f/%.1f, ", 
+			name, 
+			measurement.Min,
+			measurement.Sum/float64(measurement.Count),
+			measurement.Max,
+		)
+	}
+	
+	fmt.Println(time.Since(start))
 }
