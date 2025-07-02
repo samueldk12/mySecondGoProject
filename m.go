@@ -19,7 +19,7 @@ type Measurement struct {
 
 func main() {
 	start := time.Now()
-	measurements, err := os.Open("weather_stations.csv")
+	measurements, err := os.Open("measurements.txt")
 	if err != nil {
 		panic(err)
 	}
